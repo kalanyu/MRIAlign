@@ -1,7 +1,12 @@
 
-/*.csv
-/*.fig
-/*.mat
-
 wholeArm/
 wholeArmNii/
+
+**/*.csv
+**/*.fig
+**/*.mat
+
+!MRIAlignmentTool.fig
+
+
+
