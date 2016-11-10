@@ -809,7 +809,8 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
 
   wrappedSensor = zeros(rows, 3);
   for i=1:rows
-    distances = sqrt(sum( (handles.surf_face.V - handles.ste_electrodes(i,:)).^2, 2));
+    distances = sqrt(sum( bsxfun(@minus, handles.surf_face.V, handles.ste_electrodes(i,:)).^2, 2));
+    % distances = sqrt(sum( (handles.surf_face.V - handles.ste_electrodes(i,:)).^2, 2));
     [r, c, val] = find(distances==min(distances));
     wrappedSensor(i,:) = handles.surf_face.V(r(1),:);
     waitbar(i/rows);
