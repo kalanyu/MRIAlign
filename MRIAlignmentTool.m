@@ -61,7 +61,7 @@ setenv('FSLOUTPUTTYPE', 'NIFTI_GZ');
 axes(handles.axes1);
 plot(0)
 setAlignSection(hObject, 'off');
-setModelSection(hObject, 'off');
+% setModelSection(hObject, 'off');
 setExportSection(hObject, 'off');
 guidata(hObject, handles);
 
@@ -392,7 +392,19 @@ function mergeButton_Callback(hObject, eventdata, handles)
   cd('wholeArmNii')
   system(char(['/usr/local/fsl/bin/fslmerge -z ' handles.mergedFileName ' vol_slice_*']))
   gunzip([handles.mergedFileName '.nii.gz'])
+  numSlices = length(dir('vol_slice_*'));
   delete('vol_slice_*');
+  nii = nii_tool('load', [handles.mergedFileName '.nii']);
+  % temp_nii = nii;
+  % assignin('base','meta',nii)
+  % nii.hdr.pixdim(2) = temp_nii.hdr.pixdim(2) * (numSlices * 10); %x cm to mm
+  % nii.hdr.pixdim(3) = temp_nii.hdr.pixdim(3) * (numSlices * 10); %y cm to mm
+  % nii.hdr.pixdim(4) = temp_nii.hdr.pixdim(4) * (numSlices * 10); %z cm to mm
+  % nii.hdr.pixdim(5) = temp_nii.hdr.pixdim(5) * numSlices; %time has no effect
+  % numSlices
+  % temp_nii.hdr.pixdim
+  % nii.hdr.pixdim
+  nii_tool('save', nii, [handles.mergedFileName '.nii'])
   set(handles.load3DModel,'enable','on');
   cd ..
 
@@ -406,27 +418,52 @@ function load3DModel_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
+
+% load meshFinal.mat
+%
+% axes(handles.axes1)
+% % Plot together
+% D = full_mask{1};
+% data_size = size(D);
+% plotmesh(nbone(:,[2 1 3]),fbone(:,[2 1 3]),'facealpha',0.7,'facecolor', 'k', 'EdgeAlpha', 0.25);
+% hold on
+% plotmesh(nmuscle(:,[2 1 3]),fmuscle(:,[2 1 3]),'facealpha',0.7,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
+% % plotmesh(nskin(:,[2 1 3]),fskin(:,[2 1 3]),'facealpha',0.7,'facecolor', [0.5 0.5 0.5], 'EdgeAlpha', 0.25);
+% plotmesh(nskin(:,[2 1 3]),fskin(:,[2 1 3]),'facealpha',0.7,'facecolor', [248./255.,216./255.,183./255.], 'EdgeAlpha', 0.25);
+% hold off
+% legend('Bone','Muscle','Fat and Skin')
+% xlabel('X [mm]')
+% ylabel('Y [mm]')
+% zlabel('Z [mm]')
+% view(37.5,30)
+% set(gca, 'fontsize',14)
+% set(gca,'xtick',([0 40 60 80 100]))
+% set(gcf,'color','w')
+
 set(handles.figure1, 'pointer', 'watch')
 
 cd('wholeArmNii')
 face_param = struct;
 face_param.radius = [-2 2 3 -3 -3];
-face_parm.step = 2;
+face_parm.step = 1;
 face_parm.pmax = 0.099;
 
-[Fface, Vface] = face_extract([handles.mergedFileName '.nii']);
+% [Fface, Vface] = face_extract([handles.mergedFileName '.nii']);
 % imagefile = 'wholeArmNii/Ax_T2_Armtest.nii';
-% [Fface, Vface] = face_extract('wholeArm_2016_10_28_15_59.nii');
+[Fface, Vface] = face_extract('wholeArmNii/wholeArm_2016_12_9_15_54.nii');
 
-surf_face.V = Vface;
+
+surf_face.V = Vface * 1000; %vbmeg converts mm to m, convert back
 surf_face.F = Fface;
 surf_face.face_parm = face_parm;
 
-Nmri = 3000;
-[surf_face.F_reduce, surf_face.V_reduce] = reducepatch(Fface, Vface, 2 * Nmri);
+Nmri = 5000;
+[surf_face.F_reduce, surf_face.V_reduce] = reducepatch(surf_face.F, surf_face.V, 2 * Nmri);
 axes(handles.axes1);
 
 handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+% handles.modelPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+
 axis equal
 set( gcf, 'menubar', 'figure' )
 rotate3d on
@@ -449,21 +486,21 @@ handles = guidata(hObject);
 electrodes = pos(:,:);
 
 raw_electrodes = electrodes;
-x = electrodes(:,1)/(max(electrodes(:,1)) * 10); %x
-x(6) = 0.07;
-x(3) = 0.00;
-x(7) = -0.05;
-
-y = electrodes(:,2)/(max(electrodes(:,2)) * 3); %y
-y(1) = -0.11;
-y(3) = -0.04;
-y(7) = -0.03;
-
-z = electrodes(:,3)/(max(electrodes(:,3)) * 0.7); %z
-z([6 3 4],1) = z([6 3 4],1) - 0.025;
-z(7) =  1.4758;
-
-electrodes = [x, y, z];
+% x = electrodes(:,1)/(max(electrodes(:,1)) * 10); %x
+% x(6) = 0.07;
+% x(3) = 0.00;
+% x(7) = -0.05;
+%
+% y = electrodes(:,2)/(max(electrodes(:,2)) * 3); %y
+% y(1) = -0.11;
+% y(3) = -0.04;
+% y(7) = -0.03;
+%
+% z = electrodes(:,3)/(max(electrodes(:,3)) * 0.7); %z
+% z([6 3 4],1) = z([6 3 4],1) - 0.025;
+% z(7) =  1.4758;
+%
+% electrodes = [x, y, z];
 temp_electrodes = electrodes;
 electrodes(2,:) = temp_electrodes(7,:);
 electrodes(3,:) = temp_electrodes(2,:);
@@ -526,6 +563,10 @@ hold off
 handles.te_electrodes = te_electrodes;
 handles.ste_electrodes = te_electrodes;
 
+handles.rotateMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+handles.scaleMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+handles.translateMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+
 setModelSection(hObject, 'on');
 guidata(hObject, handles);
 set(handles.figure1, 'pointer', 'arrow')
@@ -569,22 +610,18 @@ function rotate(hObject, about, degree)
 
   switch about
     case 'x'
-      difRot = rotRad - handles.prevRMat(1);
-      tMat = [1 0 0 0; 0 cos(difRot) sin(difRot) 0; 0 -sin(difRot) cos(difRot) 0; 0 0 0 1];
-      handles.prevRMat(1) = rotRad;
+      tMat = [1 0 0 0; 0 cos(rotRad) sin(rotRad) 0; 0 -sin(rotRad) cos(rotRad) 0; 0 0 0 1];
     case 'y'
-      difRot = rotRad - handles.prevRMat(2);
-      tMat = [cos(difRot) 0 -sin(difRot) 0; 0 1 0 0; sin(difRot) 0 cos(difRot) 0; 0 0 0 1];
-      handles.prevRMat(2) = rotRad;
+      tMat = [cos(rotRad) 0 -sin(rotRad) 0; 0 1 0 0; sin(rotRad) 0 cos(rotRad) 0; 0 0 0 1];
     case 'z'
-      difRot = rotRad - handles.prevRMat(3);
-      tMat = [cos(difRot) sin(difRot) 0 0; -sin(difRot) cos(difRot) 0 0; 0 0 1 0; 0 0 0 1];
-      handles.prevRMat(3) = rotRad;
+      tMat = [cos(rotRad) sin(rotRad) 0 0; -sin(rotRad) cos(rotRad) 0 0; 0 0 1 0; 0 0 0 1];
     otherwise
       tMat = ones(4,4);
   end
+
+  handles.rotateMat = tMat;
   electrodes = handles.te_electrodes;
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat * handles.translateMat * handles.scaleMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -594,7 +631,6 @@ function rotate(hObject, about, degree)
   handles.hE = scatter3(te_electrodes(1:7,1),te_electrodes(1:7,2),te_electrodes(1:7,3), 'filled','lineWidth',20);
   handles.hT = text(te_electrodes(:,1),te_electrodes(:,2),te_electrodes(:,3), num2str(handles.labels));
   hold off
-  handles.te_electrodes = te_electrodes(:,1:3);
   % comment out for beautiful effects
   guidata(hObject, handles);
 
@@ -635,26 +671,20 @@ function rotateZField_Callback(hObject, eventdata, handles)
 function translate(hObject, along, matrix)
   handles = guidata(hObject);
   electrodes = handles.te_electrodes;
-  if isfield(handles, 'prevMat') == false
-    handles.prevMat = [0 0 0];
-  end
 
   difMat = [0 0 0];
   switch along
     case 'x'
-      difMat(1) = matrix(1) - handles.prevMat(1);
-      handles.prevMat(1) = matrix(1);
+      difMat(1) = matrix(1);
     case 'y'
-      difMat(2) = matrix(2) - handles.prevMat(2);
-      handles.prevMat(2) = matrix(2);
+      difMat(2) = matrix(2);
     case 'z'
-      difMat(3) = matrix(3) - handles.prevMat(3);
-      handles.prevMat(3) = matrix(3);
+      difMat(3) = matrix(3);
   end
-  % matrix [ x y z ];
+
   tMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; difMat(1) difMat(2) difMat(3) 1];
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
-  handles.te_electrodes = te_electrodes(:,1:3);
+  handles.translateMat = tMat;
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.rotateMat * tMat * handles.scaleMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -704,11 +734,8 @@ function translateZField_Callback(hObject, eventdata, handles)
 function scaler(hObject, along, matrix)
   handles = guidata(hObject);
   electrodes = handles.te_electrodes;
-  if isfield(handles, 'prevSMat') == false
-    handles.prevSMat = [1 1 1];
-  end
 
-  difMat = handles.prevSMat;
+  difMat = [1 1 1];
   switch along
     case 'x'
       difMat(1) = matrix(1);
@@ -719,10 +746,10 @@ function scaler(hObject, along, matrix)
     otherwise
       difMat = matrix;
   end
-  handles.prevSMat = difMat;
-  % matrix [ x y z ];
+
   tMat = [difMat(1) 0 0 0; 0 difMat(2) 0 0; 0 0 difMat(3) 0; 0 0 0 1];
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
+  handles.scaleMat = tMat;
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.rotateMat * handles.translateMat * tMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -733,7 +760,6 @@ function scaler(hObject, along, matrix)
   handles.hT = text(te_electrodes(:,1),te_electrodes(:,2),te_electrodes(:,3), num2str(handles.labels));
   hold off
 
-  handles.ste_electrodes = te_electrodes(:,1:3);
   % comment out for beautiful effects
   guidata(hObject, handles);
 
@@ -804,13 +830,17 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
   handles = guidata(hObject);
-  [rows, ~] = size(handles.ste_electrodes);
+  electrodes = handles.te_electrodes;
+
+  [rows, ~] = size(electrodes);
   h = waitbar(0, 'Positioning sensor locations');
+
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.rotateMat * handles.translateMat * handles.scaleMat;
+  te_electrodes = te_electrodes(:,1:3);
 
   wrappedSensor = zeros(rows, 3);
   for i=1:rows
-    distances = sqrt(sum( bsxfun(@minus, handles.surf_face.V, handles.ste_electrodes(i,:)).^2, 2));
-    % distances = sqrt(sum( (handles.surf_face.V - handles.ste_electrodes(i,:)).^2, 2));
+    distances = sqrt(sum( bsxfun(@minus, handles.surf_face.V, te_electrodes(i,:)).^2, 2));
     [r, c, val] = find(distances==min(distances));
     wrappedSensor(i,:) = handles.surf_face.V(r(1),:);
     waitbar(i/rows);
