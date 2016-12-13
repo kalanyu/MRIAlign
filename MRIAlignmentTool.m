@@ -22,7 +22,7 @@ function varargout = MRIAlignmentTool(varargin)
 
 % Edit the above text to modify the response to help MRIAlignmentTool
 
-% Last Modified by GUIDE v2.5 04-Nov-2016 17:50:36
+% Last Modified by GUIDE v2.5 09-Dec-2016 16:35:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -419,27 +419,6 @@ function load3DModel_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 
-% load meshFinal.mat
-%
-% axes(handles.axes1)
-% % Plot together
-% D = full_mask{1};
-% data_size = size(D);
-% plotmesh(nbone(:,[2 1 3]),fbone(:,[2 1 3]),'facealpha',0.7,'facecolor', 'k', 'EdgeAlpha', 0.25);
-% hold on
-% plotmesh(nmuscle(:,[2 1 3]),fmuscle(:,[2 1 3]),'facealpha',0.7,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
-% % plotmesh(nskin(:,[2 1 3]),fskin(:,[2 1 3]),'facealpha',0.7,'facecolor', [0.5 0.5 0.5], 'EdgeAlpha', 0.25);
-% plotmesh(nskin(:,[2 1 3]),fskin(:,[2 1 3]),'facealpha',0.7,'facecolor', [248./255.,216./255.,183./255.], 'EdgeAlpha', 0.25);
-% hold off
-% legend('Bone','Muscle','Fat and Skin')
-% xlabel('X [mm]')
-% ylabel('Y [mm]')
-% zlabel('Z [mm]')
-% view(37.5,30)
-% set(gca, 'fontsize',14)
-% set(gca,'xtick',([0 40 60 80 100]))
-% set(gcf,'color','w')
-
 set(handles.figure1, 'pointer', 'watch')
 
 cd('wholeArmNii')
@@ -486,21 +465,7 @@ handles = guidata(hObject);
 electrodes = pos(:,:);
 
 raw_electrodes = electrodes;
-% x = electrodes(:,1)/(max(electrodes(:,1)) * 10); %x
-% x(6) = 0.07;
-% x(3) = 0.00;
-% x(7) = -0.05;
-%
-% y = electrodes(:,2)/(max(electrodes(:,2)) * 3); %y
-% y(1) = -0.11;
-% y(3) = -0.04;
-% y(7) = -0.03;
-%
-% z = electrodes(:,3)/(max(electrodes(:,3)) * 0.7); %z
-% z([6 3 4],1) = z([6 3 4],1) - 0.025;
-% z(7) =  1.4758;
-%
-% electrodes = [x, y, z];
+
 temp_electrodes = electrodes;
 electrodes(2,:) = temp_electrodes(7,:);
 electrodes(3,:) = temp_electrodes(2,:);
@@ -610,18 +575,26 @@ function rotate(hObject, about, degree)
 
   switch about
     case 'x'
-      tMat = [1 0 0 0; 0 cos(rotRad) sin(rotRad) 0; 0 -sin(rotRad) cos(rotRad) 0; 0 0 0 1];
+      difRot = rotRad - handles.prevRMat(1);
+      tMat = [1 0 0 0; 0 cos(difRot) sin(difRot) 0; 0 -sin(difRot) cos(difRot) 0; 0 0 0 1];
+      handles.prevRMat(1) = rotRad;
     case 'y'
-      tMat = [cos(rotRad) 0 -sin(rotRad) 0; 0 1 0 0; sin(rotRad) 0 cos(rotRad) 0; 0 0 0 1];
+      difRot = rotRad - handles.prevRMat(2);
+      tMat = [cos(difRot) 0 -sin(difRot) 0; 0 1 0 0; sin(difRot) 0 cos(difRot) 0; 0 0 0 1];
+      handles.prevRMat(2) = rotRad;
     case 'z'
-      tMat = [cos(rotRad) sin(rotRad) 0 0; -sin(rotRad) cos(rotRad) 0 0; 0 0 1 0; 0 0 0 1];
+      difRot = rotRad - handles.prevRMat(3);
+      tMat = [cos(difRot) sin(difRot) 0 0; -sin(difRot) cos(difRot) 0 0; 0 0 1 0; 0 0 0 1];
+      handles.prevRMat(3) = rotRad;
     otherwise
       tMat = ones(4,4);
   end
 
   handles.rotateMat = tMat;
   electrodes = handles.te_electrodes;
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat * handles.translateMat * handles.scaleMat;
+  electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
+  handles.te_electrodes = electrodes(:,1:3);
+  te_electrodes = electrodes * handles.translateMat * handles.scaleMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -672,19 +645,19 @@ function translate(hObject, along, matrix)
   handles = guidata(hObject);
   electrodes = handles.te_electrodes;
 
-  difMat = [0 0 0];
+  tMat = handles.translateMat;
   switch along
     case 'x'
-      difMat(1) = matrix(1);
+      tMat(4,1) = matrix(1);
     case 'y'
-      difMat(2) = matrix(2);
+      tMat(4,2) = matrix(2);
     case 'z'
-      difMat(3) = matrix(3);
+      tMat(4,3) = matrix(3);
   end
 
-  tMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; difMat(1) difMat(2) difMat(3) 1];
+  % tMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; difMat(1) difMat(2) difMat(3) 1];
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat * handles.scaleMat;
   handles.translateMat = tMat;
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.rotateMat * tMat * handles.scaleMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -735,21 +708,23 @@ function scaler(hObject, along, matrix)
   handles = guidata(hObject);
   electrodes = handles.te_electrodes;
 
-  difMat = [1 1 1];
+  tMat = handles.scaleMat;
   switch along
     case 'x'
-      difMat(1) = matrix(1);
+      tMat(1,1) = matrix(1);
     case 'y'
-      difMat(2) = matrix(2);
+      tMat(2,2) = matrix(2);
     case 'z'
-      difMat(3) = matrix(3);
+      tMat(3,3) = matrix(3);
     otherwise
-      difMat = matrix;
+      tMat(1,1) = matrix(1);
+      tMat(2,2) = matrix(2);
+      tMat(3,3) = matrix(3);
   end
 
-  tMat = [difMat(1) 0 0 0; 0 difMat(2) 0 0; 0 0 difMat(3) 0; 0 0 0 1];
+  % tMat = [difMat(1) 0 0 0; 0 difMat(2) 0 0; 0 0 difMat(3) 0; 0 0 0 1];
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.translateMat * tMat;
   handles.scaleMat = tMat;
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.rotateMat * handles.translateMat * tMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -832,19 +807,13 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
   handles = guidata(hObject);
   electrodes = handles.te_electrodes;
 
-  [rows, ~] = size(electrodes);
   h = waitbar(0, 'Positioning sensor locations');
 
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.rotateMat * handles.translateMat * handles.scaleMat;
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.translateMat * handles.scaleMat;
   te_electrodes = te_electrodes(:,1:3);
 
-  wrappedSensor = zeros(rows, 3);
-  for i=1:rows
-    distances = sqrt(sum( bsxfun(@minus, handles.surf_face.V, te_electrodes(i,:)).^2, 2));
-    [r, c, val] = find(distances==min(distances));
-    wrappedSensor(i,:) = handles.surf_face.V(r(1),:);
-    waitbar(i/rows);
-  end
+  wrappedSensor = wrapSensor(handles.surf_face.V, te_electrodes)
+
   close(h);
 
   delete(handles.hRef);
@@ -853,8 +822,8 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
   hold on
 
   expand = 1.05;
-  tMat = [expand 0 0 0; 0 expand 0 0; 0 0 expand 0; 0 0 0 1];
-  wrappedSensor = [wrappedSensor ones(length(wrappedSensor), 1)] * tMat;
+  % tMat = [expand 0 0 0; 0 expand 0 0; 0 0 expand 0; 0 0 0 1];
+  wrappedSensor = [wrappedSensor ones(length(wrappedSensor), 1)];% * tMat;
 
   handles.hRef = scatter3(wrappedSensor(:,1), wrappedSensor(:,2), wrappedSensor(:,3),'filled','lineWidth',20);
   handles.hE = scatter3(wrappedSensor(1:7,1),wrappedSensor(1:7,2),wrappedSensor(1:7,3), 'filled','lineWidth',20);
@@ -870,6 +839,16 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
 
   setExportSection(hObject, 'on');
   guidata(hObject, handles);
+
+function wrappedSensor = wrapSensor(meshData, electrodeData)
+  [rows, ~] = size(electrodeData);
+
+  wrappedSensor = zeros(rows, 3);
+  for i=1:rows
+    distances = sqrt(sum( bsxfun(@minus, meshData, electrodeData(i,:)).^2, 2));
+    [r, c, val] = find(distances==min(distances));
+    wrappedSensor(i,:) = meshData(r(1),:);
+  end
 
 function setAlignSection(hObject, status)
   handles = guidata(hObject);
@@ -1003,9 +982,15 @@ function makeModelTransparent_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 hold on
-delete(handles.modelPlot);
 surf_face = handles.surf_face;
-handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+
+if isfield(handles, 'modelPlot')
+  delete(handles.modelPlot);
+  handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+elseif isfield(handles, 'importPlot')
+  delete(handles.importPlot);
+  handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3),  'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+end
 axis equal
 hold off
 guidata(hObject, handles);
@@ -1016,16 +1001,69 @@ function makeModelSkin_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
-delete(handles.modelPlot);
 hold on
 surf_face = handles.surf_face;
-handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 1, 'FaceColor', [255 218 200]/255, 'EdgeColor', [255 218 200]/255, 'facelighting','gouraud', 'BackFaceLighting', 'unlit')
+
+if isfield(handles, 'modelPlot')
+  delete(handles.modelPlot);
+  handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 1, 'FaceColor', [255 218 200]/255, 'EdgeColor', [255 218 200]/255, 'facelighting','gouraud', 'BackFaceLighting', 'unlit')
+  delete(findall(gcf,'Type','light'))
+  lightangle(-45,30)
+  lightangle(-135,30)
+  lightangle(45,-30)
+  lightangle(135,-30)
+elseif isfield(handles, 'importPlot')
+  delete(handles.importPlot);
+  handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.9, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
+end
 axis equal
 hold off
-delete(findall(gcf,'Type','light'))
-lightangle(-45,30)
-lightangle(-135,30)
-lightangle(45,-30)
-lightangle(135,-30)
+
 
 guidata(hObject, handles);
+
+
+% --- Executes on button press in importMesh.
+function importMesh_Callback(hObject, eventdata, handles)
+% hObject    handle to importMesh (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles = guidata(hObject);
+[file_name, file_path] = uigetfile('*.mat', 'Select a .mat file');
+load([file_path file_name]);
+%
+axes(handles.axes1)
+% Plot together
+D = full_mask{1};
+data_size = size(D);
+
+if isfield(handles,'modelPlot')
+  delete(modelPlot)
+end
+
+handles.surf_face.F = fskin(:,[1 2 3]);
+handles.surf_face.V = nskin(:,[1 2 3]);
+surf_face = handles.surf_face;
+
+hold on
+plotmesh(nbone(:,[1 2 3]),fbone(:,[1 2 3]),'facealpha',0.7,'facecolor', [1 1 1], 'EdgeAlpha', 0.25);
+plotmesh(nmuscle(:,[1 2 3]),fmuscle(:,[1 2 3]),'facealpha',0.5,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
+handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
+axis equal
+hold off
+
+
+set( gcf, 'menubar', 'figure' )
+
+
+guidata(hObject, handles)
+% plotmesh(nskin(:,[1 2 3]),fskin(:,[1 2 3]),'facealpha',0.7,'facecolor', [248./255.,216./255.,183./255.], 'EdgeAlpha', 0.25);
+% hold off
+% legend('Bone','Muscle','Fat and Skin')
+% xlabel('X [mm]')
+% ylabel('Y [mm]')
+% zlabel('Z [mm]')
+% view(37.5,30)
+% set(gca, 'fontsize',14)
+% set(gca,'xtick',([0 40 60 80 100]))
+% set(gcf,'color','w')
