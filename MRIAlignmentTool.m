@@ -394,17 +394,6 @@ function mergeButton_Callback(hObject, eventdata, handles)
   gunzip([handles.mergedFileName '.nii.gz'])
   numSlices = length(dir('vol_slice_*'));
   delete('vol_slice_*');
-  nii = nii_tool('load', [handles.mergedFileName '.nii']);
-  % temp_nii = nii;
-  % assignin('base','meta',nii)
-  % nii.hdr.pixdim(2) = temp_nii.hdr.pixdim(2) * (numSlices * 10); %x cm to mm
-  % nii.hdr.pixdim(3) = temp_nii.hdr.pixdim(3) * (numSlices * 10); %y cm to mm
-  % nii.hdr.pixdim(4) = temp_nii.hdr.pixdim(4) * (numSlices * 10); %z cm to mm
-  % nii.hdr.pixdim(5) = temp_nii.hdr.pixdim(5) * numSlices; %time has no effect
-  % numSlices
-  % temp_nii.hdr.pixdim
-  % nii.hdr.pixdim
-  nii_tool('save', nii, [handles.mergedFileName '.nii'])
   set(handles.load3DModel,'enable','on');
   cd ..
 
@@ -461,38 +450,41 @@ function loadsensorButton_Callback(hObject, eventdata, handles)
 handles = guidata(hObject);
 [file_name, file_path] = uigetfile('*.csv', 'Select a sensor file');
 
-[labels, pos] = readOptoPositions([file_path file_name]);
-electrodes = pos(:,:);
+if file_name ~= 0
+  [labels, pos] = readOptoPositions([file_path file_name]);
+  electrodes = pos(:,:);
 
-raw_electrodes = electrodes;
+  raw_electrodes = electrodes;
 
-temp_electrodes = electrodes;
-electrodes(2,:) = temp_electrodes(7,:);
-electrodes(3,:) = temp_electrodes(2,:);
-electrodes(4,:) = temp_electrodes(3,:);
-electrodes(6,:) = temp_electrodes(4,:);
-electrodes(7,:) = temp_electrodes(6,:);
+  temp_electrodes = electrodes;
+  electrodes(2,:) = temp_electrodes(7,:);
+  electrodes(3,:) = temp_electrodes(2,:);
+  electrodes(4,:) = temp_electrodes(3,:);
+  electrodes(6,:) = temp_electrodes(4,:);
+  electrodes(7,:) = temp_electrodes(6,:);
 
-handles.raw_electrodes = raw_electrodes;
-handles.electrodes = electrodes;
-handles.labels = labels;
-msgbox('Sensor positions loaded');
+  handles.raw_electrodes = raw_electrodes;
+  handles.electrodes = electrodes;
+  handles.labels = labels;
+  msgbox('Sensor positions loaded');
 
-set(handles.markmodeButton, 'Enable', 'on');
-guidata(hObject, handles);
+  set(handles.markmodeButton, 'Enable', 'on');
+end
+  guidata(hObject, handles);
 
-% --- Executes on button press in markmodeButton.
-function markmodeButton_Callback(hObject, eventdata, handles)
-% hObject    handle to markmodeButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% Hint: get(hObject,'Value') returns toggle state of markmodeButton
-handles = guidata(hObject);
-set( gcf, 'menubar', 'figure' )
-dcm_obj = datacursormode(gcf);
-set(dcm_obj,'DisplayStyle','datatip','SnapToDataVertex','off','Enable','on');
-handles.dcm_obj = dcm_obj;
-set(handles.transformButton, 'Enable', 'on');
+  % --- Executes on button press in markmodeButton.
+  function markmodeButton_Callback(hObject, eventdata, handles)
+  % hObject    handle to markmodeButton (see GCBO)
+  % eventdata  reserved - to be defined in a future version of MATLAB
+  % handles    structure with handles and user data (see GUIDATA)
+  % Hint: get(hObject,'Value') returns toggle state of markmodeButton
+  handles = guidata(hObject);
+  set( gcf, 'menubar', 'figure' )
+  dcm_obj = datacursormode(gcf);
+  set(dcm_obj,'DisplayStyle','datatip','SnapToDataVertex','off','Enable','on');
+  handles.dcm_obj = dcm_obj;
+  set(handles.transformButton, 'Enable', 'on');
+gx
 guidata(hObject, handles);
 
 % --- Executes on button press in transformButton.
@@ -829,7 +821,7 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
   handles.hE = scatter3(wrappedSensor(1:7,1),wrappedSensor(1:7,2),wrappedSensor(1:7,3), 'filled','lineWidth',20);
 
   wrappedSensor = wrappedSensor(:,1:3);
-  expand = 1.1;
+  expand = 1.05;
   tMat = [expand 0 0 0; 0 expand 0 0; 0 0 expand 0; 0 0 0 1];
   wrappedSensor = [wrappedSensor ones(length(wrappedSensor), 1)] * tMat;
 
@@ -904,12 +896,20 @@ function setExportSection(hObject, status)
   % eventdata  reserved - to be defined in a future version of MATLAB
   % handles    structure with handles and user data (see GUIDATA)
    handles = guidata(hObject);
-   [fileName, pathName] = uiputfile(['arm_model_surface_' strrep(date,'-','_') '.mat'],'Save file name')
+   [fileName, pathName] = uiputfile(['arm_model_surface_' strrep(date,'-','_') '.mat'],'Save file name');
    currentDirectory = pwd;
    cd(pathName);
    fileName
-   surf = handles.surf_face
-   save(fileName, 'surf');
+   if isfield(handles, 'importPlot')
+     model = struct;
+     model.skin = handles.surf_face;
+     model.bone = handles.bone_face;
+     model.muscle = handles.muscle_face;
+   else
+     model = handles.model;
+   end
+
+   save(fileName, 'model');
    cd(currentDirectory);
 
   % --- Executes on button press in saveSensorPosition.
@@ -918,7 +918,7 @@ function setExportSection(hObject, status)
   % eventdata  reserved - to be defined in a future version of MATLAB
   % handles    structure with handles and user data (see GUIDATA)
   handles = guidata(hObject);
-  [fileName, pathName] = uiputfile(['sensor_position_' strrep(date,'-','_') '.csv'],'Save file name')
+  [fileName, pathName] = uiputfile(['sensor_position_' strrep(date,'-','_') '.csv'],'Save file name');
   currentDirectory = pwd;
   cd(pathName);
   csvwrite(fileName, handles.wrapped_electrodes);
@@ -937,7 +937,7 @@ function setExportSection(hObject, status)
   savefig(Fig2, 'myFigure.fig')
 
   handles = guidata(hObject);
-  [fileName, pathName] = uiputfile(['arm_model_' strrep(date,'-','_') '.figure'],'Save file name')
+  [fileName, pathName] = uiputfile(['arm_model_' strrep(date,'-','_') '.figure'],'Save file name');
   currentDirectory = pwd;
   cd(pathName);
   fileName
@@ -1028,35 +1028,41 @@ function importMesh_Callback(hObject, eventdata, handles)
 % hObject    handle to importMesh (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
 [file_name, file_path] = uigetfile('*.mat', 'Select a .mat file');
-load([file_path file_name]);
-%
-axes(handles.axes1)
-% Plot together
-D = full_mask{1};
-data_size = size(D);
 
-if isfield(handles,'modelPlot')
-  delete(modelPlot)
+if file_name ~= 0,
+  handles = guidata(hObject);
+  load([file_path file_name]);
+
+  axes(handles.axes1)
+  % Plot together
+  D = full_mask{1};
+  data_size = size(D);
+
+  if isfield(handles,'modelPlot')
+    delete(modelPlot)
+  end
+
+  handles.surf_face.F = fskin(:,[1 2 3]);
+  handles.surf_face.V = nskin(:,[1 2 3]);
+  handles.bone_face.F = fbone(:,[1 2 3]);
+  handles.bone_face.V = nbone(:,[1 2 3]);
+  handles.muscle_face.F = fmuscle(:,[1 2 3]);
+  handles.muscle_face.V = nmuscle(:,[1 2 3]);
+
+  surf_face = handles.surf_face;
+
+  hold on
+  plotmesh(nbone(:,[1 2 3]),fbone(:,[1 2 3]),'facealpha',0.7,'facecolor', [1 1 1], 'EdgeAlpha', 0.25);
+  plotmesh(nmuscle(:,[1 2 3]),fmuscle(:,[1 2 3]),'facealpha',0.5,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
+  handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
+  axis equal
+  hold off
+
+
+  set( gcf, 'menubar', 'figure' )
+  guidata(hObject, handles)
 end
-
-handles.surf_face.F = fskin(:,[1 2 3]);
-handles.surf_face.V = nskin(:,[1 2 3]);
-surf_face = handles.surf_face;
-
-hold on
-plotmesh(nbone(:,[1 2 3]),fbone(:,[1 2 3]),'facealpha',0.7,'facecolor', [1 1 1], 'EdgeAlpha', 0.25);
-plotmesh(nmuscle(:,[1 2 3]),fmuscle(:,[1 2 3]),'facealpha',0.5,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
-handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
-axis equal
-hold off
-
-
-set( gcf, 'menubar', 'figure' )
-
-
-guidata(hObject, handles)
 % plotmesh(nskin(:,[1 2 3]),fskin(:,[1 2 3]),'facealpha',0.7,'facecolor', [248./255.,216./255.,183./255.], 'EdgeAlpha', 0.25);
 % hold off
 % legend('Bone','Muscle','Fat and Skin')
