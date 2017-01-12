@@ -395,6 +395,8 @@ function mergeButton_Callback(hObject, eventdata, handles)
   numSlices = length(dir('vol_slice_*'));
   delete('vol_slice_*');
   set(handles.load3DModel,'enable','on');
+  set(handles.savemodelButton, 'Enable', 'on');
+
   cd ..
 
   close(h);
@@ -918,7 +920,7 @@ function setExportSection(hObject, status)
      model.bone = handles.bone_face;
      model.muscle = handles.muscle_face;
    else
-     model = handles.model;
+     model = handles.surf_face;
    end
 
    save(fileName, 'model');
@@ -1048,26 +1050,30 @@ if file_name ~= 0,
 
   axes(handles.axes1);
   % Plot together
-  D = full_mask{1};
-  data_size = size(D);
 
   if isfield(handles,'modelPlot')
     delete(modelPlot)
   end
 
-  handles.surf_face.F = fskin(:,[1 2 3]);
-  handles.surf_face.V = nskin(:,[1 2 3]);
-  handles.bone_face.F = fbone(:,[1 2 3]);
-  handles.bone_face.V = nbone(:,[1 2 3]);
-  handles.muscle_face.F = fmuscle(:,[1 2 3]);
-  handles.muscle_face.V = nmuscle(:,[1 2 3]);
+  if ~isstruct(model)
+    handles.surf_face.F = fskin(:,[1 2 3]);
+    handles.surf_face.V = nskin(:,[1 2 3]);
+    handles.bone_face.F = fbone(:,[1 2 3]);
+    handles.bone_face.V = nbone(:,[1 2 3]);
+    handles.muscle_face.F = fmuscle(:,[1 2 3]);
+    handles.muscle_face.V = nmuscle(:,[1 2 3]);
+    surf_face = handles.surf_face;
+    hold on
+    plotmesh(nbone(:,[1 2 3]),fbone(:,[1 2 3]),'facealpha',0.7,'facecolor', [1 1 1], 'EdgeAlpha', 0.25);
+    plotmesh(nmuscle(:,[1 2 3]),fmuscle(:,[1 2 3]),'facealpha',0.5,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
+    handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
 
-  surf_face = handles.surf_face;
+  else
+    surf_face = model;
+    handles.surf_face = surf_face;
+    handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
+  end
 
-  hold on
-  plotmesh(nbone(:,[1 2 3]),fbone(:,[1 2 3]),'facealpha',0.7,'facecolor', [1 1 1], 'EdgeAlpha', 0.25);
-  plotmesh(nmuscle(:,[1 2 3]),fmuscle(:,[1 2 3]),'facealpha',0.5,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
-  handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
 
   % plotmesh(nskin(:,[1 2 3]),fskin(:,[1 2 3]),'facealpha',0.7,'facecolor', [248./255.,216./255.,183./255.], 'EdgeAlpha', 0.25);
 
