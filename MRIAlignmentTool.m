@@ -163,10 +163,11 @@ function rearrangeButton_Callback(hObject, eventdata, handles)
     end
   end
 
-  if ~exist('wholeArm')
-    mkdir wholeArm
+  wholeArmPath = [userpath() '/wholeArm'];
+  if ~exist(wholeArmPath, 'dir')
+    mkdir(wholeArmPath)
   else
-    cd wholeArm
+    cd(wholeArmPath)
     delete('*.MRDC');
     cd ..
   end
