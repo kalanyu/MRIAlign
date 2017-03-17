@@ -22,7 +22,7 @@ function varargout = MRIAlignmentTool(varargin)
 
 % Edit the above text to modify the response to help MRIAlignmentTool
 
-% Last Modified by GUIDE v2.5 09-Dec-2016 16:35:41
+% Last Modified by GUIDE v2.5 17-Mar-2017 12:49:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -42,7 +42,6 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
-
 
 % --- Executes just before MRIAlignmentTool is made visible.
 function MRIAlignmentTool_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -79,16 +78,6 @@ function varargout = MRIAlignmentTool_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function [fullPath, slices] = getslicesFromPath(folderPath)
-  currentDir = pwd;
-  cd(folderPath)
-
-  filecell = struct2cell([dir('*DCM*') dir('*MRDC*')]);
-
-  fullPath = pwd;
-  slices = filecell;
-  cd(currentDir)
-
 function checkEnableRearrange(handles)
   % check if struct has a specific field using isfield
   if isfield(handles,'upperPath') || isfield(handles,'lowerPath')
@@ -100,7 +89,7 @@ function load_upper_Callback(hObject, eventdata, handles)
   folder_path = uigetdir(pwd, 'Select a folder containing DICOM slices');
   if folder_path ~= 0
     handles = guidata(hObject);
-    [upperPath, upperSlices] = getslicesFromPath(folder_path);
+    [upperPath, upperSlices] = getDCMslices(folder_path);
     handles.upperPath = upperPath;
     handles.upperSlices = upperSlices;
 
@@ -115,7 +104,7 @@ function load_lower_Callback(hObject, eventdata, handles)
   folder_path = uigetdir(pwd, 'Select a folder containing DICOM slices');
   if folder_path ~= 0
     handles = guidata(hObject);
-    [lowerPath, lowerSlices] = getslicesFromPath(folder_path);
+    [lowerPath, lowerSlices] = getDCMslices(folder_path);
     handles.lowerPath = lowerPath;
     handles.lowerSlices = lowerSlices;
 
@@ -124,20 +113,15 @@ function load_lower_Callback(hObject, eventdata, handles)
     guidata(hObject, handles);
   end
 
-function indices = sortFileByName(files)
-  if isempty(files)
-    indices = [];
-  else
-    extCell = cellfun(@(x) x(end - 1),cellfun(@(x) strsplit(x,'.'),files(1,:),'UniformOutput',false));
-    [~, indices] = sort(cellfun(@(x) str2num(x), extCell),'ascend');
-  end
+  % --- Executes on button press in loadniiButton.
+function loadniiButton_Callback(hObject, eventdata, handles)
+  [file_name, file_path] = uigetfile('*.nii', 'Select a sensor file');
 
-function indices = sortFileByExtension(files)
-  if isempty(files)
-    indices = [];
-  else
-    extCell = cellfun(@(x) x(end),cellfun(@(x) strsplit(x,'.'),files(1,:),'UniformOutput',false));
-    [~, indices] = sort(cellfun(@(x) str2num(x), extCell),'ascend');
+  if file_name ~= 0
+    handles = guidata(hObject);
+    handles.mergedFileName = [file_path file_name];
+    guidata(hObject, handles);
+    load3DModel_Callback(hObject, [], handles);
   end
 
 % --- Executes on button press in rearrangeButton.
@@ -185,13 +169,12 @@ function rearrangeButton_Callback(hObject, eventdata, handles)
   sortedForeIndex = zeros(1,1);
 
   if sortExtension
-    sortedUpperIndex = sortFileByExtension(handles.upperSlices);
-    sortedForeIndex = sortFileByExtension(handles.lowerSlices);
+    sortedUpperIndex = sortbyExtension(handles.upperSlices);
+    sortedForeIndex = sortbyExtension(handles.lowerSlices);
   else
-    sortedUpperIndex = sortFileByName(handles.upperSlices);
-    sortedForeIndex = sortFileByName(handles.lowerSlices);
+    sortedUpperIndex = sortbyName(handles.upperSlices);
+    sortedForeIndex = sortbyName(handles.lowerSlices);
   end
-
 
   totalLength = length(handles.upperSlices) + length(handles.lowerSlices);
   for i = 1:length(handles.upperSlices)
@@ -204,8 +187,8 @@ function rearrangeButton_Callback(hObject, eventdata, handles)
     waitbar(i + length(handles.upperSlices)/totalLength);
   end
 
-  [folderPath, allSlices] = getslicesFromPath('wholeArm');
-  sortedIndex = sortFileByName(allSlices);
+  [folderPath, allSlices] = getDCMslices('wholeArm');
+  sortedIndex = sortbyName(allSlices);
 
   fileNames = cell(length(allSlices),1);
 
@@ -338,6 +321,16 @@ function mergeButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
   handles = guidata(hObject);
+
+  wholeArmPath = [userpath() '/wholeArmDCM'];
+  if ~exist(wholeArmPath, 'dir')
+    mkdir(wholeArmPath)
+  else
+    cd(wholeArmPath)
+    delete('*.DCM');
+    cd ..
+  end
+
   h = waitbar(0, 'Merging MRI slices...');
 
   totalLength = length(handles.filePaths);
@@ -357,6 +350,7 @@ function mergeButton_Callback(hObject, eventdata, handles)
     upperImg = dicomread(upperInfo);
     upperInfo.SeriesDescription = ['vol_slice_' sprintf('%0.4d', i)];
     dicomwrite(upperImg,'temp_vol', upperInfo);
+    dicomwrite(upperImg,['wholeArmDCM/' upperInfo.SeriesDescription '.DCM'], upperInfo);
     dicm2nii('temp_vol',['wholeArmNii'],'nii');
     waitbar(i/totalLength);
   end
@@ -376,6 +370,7 @@ function mergeButton_Callback(hObject, eventdata, handles)
       end
       foreInfo.SeriesDescription = ['vol_slice_' sprintf('%0.4d', foreFileIndex)];
       dicomwrite(recovered, 'transformed_vol', foreInfo);
+      dicomwrite(recovered,['wholeArmDCM/' foreInfo.SeriesDescription '.DCM'], foreInfo);
       dicm2nii('transformed_vol',['wholeArmNii'],'nii');
       foreFileIndex = foreFileIndex + 1;
 
@@ -388,9 +383,8 @@ function mergeButton_Callback(hObject, eventdata, handles)
   curdatetime = fix(clock);
   curdatetime = arrayfun(@(x) num2str(x), curdatetime, 'UniformOutput', false);
   curdatetime = strjoin(curdatetime(1:5), '_');
-  handles.mergedFileName = ['wholeArm_' curdatetime];
+  handles.mergedFileName = ['wholeArmNii/' 'wholeArm_' curdatetime];
 
-  cd('wholeArmNii')
   system(char(['/usr/local/fsl/bin/fslmerge -z ' handles.mergedFileName ' vol_slice_*']))
   gunzip([handles.mergedFileName '.nii.gz'])
   numSlices = length(dir('vol_slice_*'));
@@ -398,7 +392,6 @@ function mergeButton_Callback(hObject, eventdata, handles)
   set(handles.load3DModel,'enable','on');
   set(handles.savemodelButton, 'Enable', 'on');
 
-  cd ..
 
   close(h);
   guidata(hObject, handles);
@@ -413,7 +406,6 @@ handles = guidata(hObject);
 
 set(handles.figure1, 'pointer', 'watch')
 
-cd('wholeArmNii')
 face_param = struct;
 face_param.radius = [-2 2 3 -3 -3];
 face_parm.step = 1;
@@ -443,7 +435,6 @@ handles.surf_face = surf_face;
 guidata(hObject, handles);
 set(handles.figure1, 'pointer', 'arrow')
 set(handles.loadsensorButton, 'Enable', 'on');
-cd ..
 
 % --- Executes on button press in loadsensorButton.
 function loadsensorButton_Callback(hObject, eventdata, handles)
