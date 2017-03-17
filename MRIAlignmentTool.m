@@ -22,7 +22,7 @@ function varargout = MRIAlignmentTool(varargin)
 
 % Edit the above text to modify the response to help MRIAlignmentTool
 
-% Last Modified by GUIDE v2.5 04-Nov-2016 17:50:36
+% Last Modified by GUIDE v2.5 17-Mar-2017 12:49:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -42,7 +42,6 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
-
 
 % --- Executes just before MRIAlignmentTool is made visible.
 function MRIAlignmentTool_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -79,16 +78,6 @@ function varargout = MRIAlignmentTool_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function [fullPath, slices] = getslicesFromPath(folderPath)
-  currentDir = pwd;
-  cd(folderPath)
-
-  filecell = struct2cell([dir('*DCM*') dir('*MRDC*')]);
-
-  fullPath = pwd;
-  slices = filecell;
-  cd(currentDir)
-
 function checkEnableRearrange(handles)
   % check if struct has a specific field using isfield
   if isfield(handles,'upperPath') || isfield(handles,'lowerPath')
@@ -100,7 +89,7 @@ function load_upper_Callback(hObject, eventdata, handles)
   folder_path = uigetdir(pwd, 'Select a folder containing DICOM slices');
   if folder_path ~= 0
     handles = guidata(hObject);
-    [upperPath, upperSlices] = getslicesFromPath(folder_path);
+    [upperPath, upperSlices] = getDCMslices(folder_path);
     handles.upperPath = upperPath;
     handles.upperSlices = upperSlices;
 
@@ -115,7 +104,7 @@ function load_lower_Callback(hObject, eventdata, handles)
   folder_path = uigetdir(pwd, 'Select a folder containing DICOM slices');
   if folder_path ~= 0
     handles = guidata(hObject);
-    [lowerPath, lowerSlices] = getslicesFromPath(folder_path);
+    [lowerPath, lowerSlices] = getDCMslices(folder_path);
     handles.lowerPath = lowerPath;
     handles.lowerSlices = lowerSlices;
 
@@ -124,20 +113,15 @@ function load_lower_Callback(hObject, eventdata, handles)
     guidata(hObject, handles);
   end
 
-function indices = sortFileByName(files)
-  if isempty(files)
-    indices = [];
-  else
-    extCell = cellfun(@(x) x(end - 1),cellfun(@(x) strsplit(x,'.'),files(1,:),'UniformOutput',false));
-    [~, indices] = sort(cellfun(@(x) str2num(x), extCell),'ascend');
-  end
+  % --- Executes on button press in loadniiButton.
+function loadniiButton_Callback(hObject, eventdata, handles)
+  [file_name, file_path] = uigetfile('*.nii', 'Select a sensor file');
 
-function indices = sortFileByExtension(files)
-  if isempty(files)
-    indices = [];
-  else
-    extCell = cellfun(@(x) x(end),cellfun(@(x) strsplit(x,'.'),files(1,:),'UniformOutput',false));
-    [~, indices] = sort(cellfun(@(x) str2num(x), extCell),'ascend');
+  if file_name ~= 0
+    handles = guidata(hObject);
+    handles.mergedFileName = [file_path file_name];
+    guidata(hObject, handles);
+    load3DModel_Callback(hObject, [], handles);
   end
 
 % --- Executes on button press in rearrangeButton.
@@ -163,10 +147,11 @@ function rearrangeButton_Callback(hObject, eventdata, handles)
     end
   end
 
-  if ~exist('wholeArm')
-    mkdir wholeArm
+  wholeArmPath = [userpath() '/wholeArm'];
+  if ~exist(wholeArmPath, 'dir')
+    mkdir(wholeArmPath)
   else
-    cd wholeArm
+    cd(wholeArmPath)
     delete('*.MRDC');
     cd ..
   end
@@ -184,13 +169,12 @@ function rearrangeButton_Callback(hObject, eventdata, handles)
   sortedForeIndex = zeros(1,1);
 
   if sortExtension
-    sortedUpperIndex = sortFileByExtension(handles.upperSlices);
-    sortedForeIndex = sortFileByExtension(handles.lowerSlices);
+    sortedUpperIndex = sortbyExtension(handles.upperSlices);
+    sortedForeIndex = sortbyExtension(handles.lowerSlices);
   else
-    sortedUpperIndex = sortFileByName(handles.upperSlices);
-    sortedForeIndex = sortFileByName(handles.lowerSlices);
+    sortedUpperIndex = sortbyName(handles.upperSlices);
+    sortedForeIndex = sortbyName(handles.lowerSlices);
   end
-
 
   totalLength = length(handles.upperSlices) + length(handles.lowerSlices);
   for i = 1:length(handles.upperSlices)
@@ -203,8 +187,8 @@ function rearrangeButton_Callback(hObject, eventdata, handles)
     waitbar(i + length(handles.upperSlices)/totalLength);
   end
 
-  [folderPath, allSlices] = getslicesFromPath('wholeArm');
-  sortedIndex = sortFileByName(allSlices);
+  [folderPath, allSlices] = getDCMslices('wholeArm');
+  sortedIndex = sortbyName(allSlices);
 
   fileNames = cell(length(allSlices),1);
 
@@ -337,6 +321,16 @@ function mergeButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
   handles = guidata(hObject);
+
+  wholeArmPath = [userpath() '/wholeArmDCM'];
+  if ~exist(wholeArmPath, 'dir')
+    mkdir(wholeArmPath)
+  else
+    cd(wholeArmPath)
+    delete('*.DCM');
+    cd ..
+  end
+
   h = waitbar(0, 'Merging MRI slices...');
 
   totalLength = length(handles.filePaths);
@@ -356,6 +350,7 @@ function mergeButton_Callback(hObject, eventdata, handles)
     upperImg = dicomread(upperInfo);
     upperInfo.SeriesDescription = ['vol_slice_' sprintf('%0.4d', i)];
     dicomwrite(upperImg,'temp_vol', upperInfo);
+    dicomwrite(upperImg,['wholeArmDCM/' upperInfo.SeriesDescription '.DCM'], upperInfo);
     dicm2nii('temp_vol',['wholeArmNii'],'nii');
     waitbar(i/totalLength);
   end
@@ -375,6 +370,7 @@ function mergeButton_Callback(hObject, eventdata, handles)
       end
       foreInfo.SeriesDescription = ['vol_slice_' sprintf('%0.4d', foreFileIndex)];
       dicomwrite(recovered, 'transformed_vol', foreInfo);
+      dicomwrite(recovered,['wholeArmDCM/' foreInfo.SeriesDescription '.DCM'], foreInfo);
       dicm2nii('transformed_vol',['wholeArmNii'],'nii');
       foreFileIndex = foreFileIndex + 1;
 
@@ -387,14 +383,15 @@ function mergeButton_Callback(hObject, eventdata, handles)
   curdatetime = fix(clock);
   curdatetime = arrayfun(@(x) num2str(x), curdatetime, 'UniformOutput', false);
   curdatetime = strjoin(curdatetime(1:5), '_');
-  handles.mergedFileName = ['wholeArm_' curdatetime];
+  handles.mergedFileName = ['wholeArmNii/' 'wholeArm_' curdatetime];
 
-  cd('wholeArmNii')
   system(char(['/usr/local/fsl/bin/fslmerge -z ' handles.mergedFileName ' vol_slice_*']))
   gunzip([handles.mergedFileName '.nii.gz'])
+  numSlices = length(dir('vol_slice_*'));
   delete('vol_slice_*');
   set(handles.load3DModel,'enable','on');
-  cd ..
+  set(handles.savemodelButton, 'Enable', 'on');
+
 
   close(h);
   guidata(hObject, handles);
@@ -406,27 +403,30 @@ function load3DModel_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
+
 set(handles.figure1, 'pointer', 'watch')
 
-cd('wholeArmNii')
 face_param = struct;
 face_param.radius = [-2 2 3 -3 -3];
-face_parm.step = 2;
+face_parm.step = 1;
 face_parm.pmax = 0.099;
 
 [Fface, Vface] = face_extract([handles.mergedFileName '.nii']);
 % imagefile = 'wholeArmNii/Ax_T2_Armtest.nii';
-% [Fface, Vface] = face_extract('wholeArm_2016_10_28_15_59.nii');
+% [Fface, Vface] = face_extract('wholeArmNii/wholeArm_2016_12_9_15_54.nii');
 
-surf_face.V = Vface;
+
+surf_face.V = Vface * 1000; %vbmeg converts mm to m, convert back
 surf_face.F = Fface;
 surf_face.face_parm = face_parm;
 
-Nmri = 3000;
-[surf_face.F_reduce, surf_face.V_reduce] = reducepatch(Fface, Vface, 2 * Nmri);
+Nmri = 5000;
+[surf_face.F_reduce, surf_face.V_reduce] = reducepatch(surf_face.F, surf_face.V, 2 * Nmri);
 axes(handles.axes1);
 
 handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+% handles.modelPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+
 axis equal
 set( gcf, 'menubar', 'figure' )
 rotate3d on
@@ -435,62 +435,62 @@ handles.surf_face = surf_face;
 guidata(hObject, handles);
 set(handles.figure1, 'pointer', 'arrow')
 set(handles.loadsensorButton, 'Enable', 'on');
-cd ..
 
 % --- Executes on button press in loadsensorButton.
 function loadsensorButton_Callback(hObject, eventdata, handles)
-% hObject    handle to loadsensorButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles = guidata(hObject);
-[file_name, file_path] = uigetfile('*.csv', 'Select a sensor file');
+  % hObject    handle to loadsensorButton (see GCBO)
+  % eventdata  reserved - to be defined in a future version of MATLAB
+  % handles    structure with handles and user data (see GUIDATA)
+  handles = guidata(hObject);
+  [file_name, file_path] = uigetfile('*.csv', 'Select a sensor file');
 
-[labels, pos] = readOptoPositions([file_path file_name]);
-electrodes = pos(:,:);
+  if file_name ~= 0
+    [labels, pos] = readOptoPositions([file_path file_name]);
+    electrodes = pos(:,:);
 
-raw_electrodes = electrodes;
-x = electrodes(:,1)/(max(electrodes(:,1)) * 10); %x
-x(6) = 0.07;
-x(3) = 0.00;
-x(7) = -0.05;
+    raw_electrodes = electrodes;
 
-y = electrodes(:,2)/(max(electrodes(:,2)) * 3); %y
-y(1) = -0.11;
-y(3) = -0.04;
-y(7) = -0.03;
+    temp_electrodes = electrodes;
+    electrodes(2,:) = temp_electrodes(7,:);
+    electrodes(3,:) = temp_electrodes(2,:);
+    electrodes(4,:) = temp_electrodes(3,:);
+    electrodes(6,:) = temp_electrodes(4,:);
+    electrodes(7,:) = temp_electrodes(6,:);
 
-z = electrodes(:,3)/(max(electrodes(:,3)) * 0.7); %z
-z([6 3 4],1) = z([6 3 4],1) - 0.025;
-z(7) =  1.4758;
+    handles.raw_electrodes = raw_electrodes;
+    handles.electrodes = electrodes;
+    handles.labels = labels;
 
-electrodes = [x, y, z];
-temp_electrodes = electrodes;
-electrodes(2,:) = temp_electrodes(7,:);
-electrodes(3,:) = temp_electrodes(2,:);
-electrodes(4,:) = temp_electrodes(3,:);
-electrodes(6,:) = temp_electrodes(4,:);
-electrodes(7,:) = temp_electrodes(6,:);
+    hold on
+    handles.hRef = scatter3(electrodes(:,1), electrodes(:,2), electrodes(:,3),'filled','lineWidth',20);
+    handles.hE = scatter3(electrodes(1:7,1),electrodes(1:7,2),electrodes(1:7,3), 'filled','lineWidth',20);
+    handles.hT = text(electrodes(:,1),electrodes(:,2),electrodes(:,3), num2str(handles.labels));
+    % update handle object
+    hold off
 
-handles.raw_electrodes = raw_electrodes;
-handles.electrodes = electrodes;
-handles.labels = labels;
-msgbox('Sensor positions loaded');
+    % msgbox('Sensor positions loaded');
 
-set(handles.markmodeButton, 'Enable', 'on');
-guidata(hObject, handles);
+    set(handles.markmodeButton, 'Enable', 'on');
+  end
 
-% --- Executes on button press in markmodeButton.
-function markmodeButton_Callback(hObject, eventdata, handles)
-% hObject    handle to markmodeButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% Hint: get(hObject,'Value') returns toggle state of markmodeButton
-handles = guidata(hObject);
-set( gcf, 'menubar', 'figure' )
-dcm_obj = datacursormode(gcf);
-set(dcm_obj,'DisplayStyle','datatip','SnapToDataVertex','off','Enable','on');
-handles.dcm_obj = dcm_obj;
-set(handles.transformButton, 'Enable', 'on');
+  handles.rotateMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+  handles.scaleMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+  handles.translateMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+
+  guidata(hObject, handles);
+
+  % --- Executes on button press in markmodeButton.
+  function markmodeButton_Callback(hObject, eventdata, handles)
+  % hObject    handle to markmodeButton (see GCBO)
+  % eventdata  reserved - to be defined in a future version of MATLAB
+  % handles    structure with handles and user data (see GUIDATA)
+  % Hint: get(hObject,'Value') returns toggle state of markmodeButton
+  handles = guidata(hObject);
+  set( gcf, 'menubar', 'figure' )
+  dcm_obj = datacursormode(gcf);
+  set(dcm_obj,'DisplayStyle','datatip','SnapToDataVertex','off','Enable','on');
+  handles.dcm_obj = dcm_obj;
+  set(handles.transformButton, 'Enable', 'on');
 guidata(hObject, handles);
 
 % --- Executes on button press in transformButton.
@@ -517,14 +517,17 @@ te_electrodes = cpd_align(handles.electrodes, a_markers);
 % update plot
 axes(handles.axes1);
 
+delete(handles.hRef);
+delete(handles.hE);
+delete(handles.hT);
+
 hold on
 handles.hRef = scatter3(te_electrodes(:,1), te_electrodes(:,2), te_electrodes(:,3),'filled','lineWidth',20);
 handles.hE = scatter3(te_electrodes(1:7,1),te_electrodes(1:7,2),te_electrodes(1:7,3), 'filled','lineWidth',20);
 handles.hT = text(te_electrodes(:,1),te_electrodes(:,2),te_electrodes(:,3), num2str(handles.labels));
 % update handle object
 hold off
-handles.te_electrodes = te_electrodes;
-handles.ste_electrodes = te_electrodes;
+handles.electrodes = te_electrodes;
 
 setModelSection(hObject, 'on');
 guidata(hObject, handles);
@@ -583,8 +586,12 @@ function rotate(hObject, about, degree)
     otherwise
       tMat = ones(4,4);
   end
-  electrodes = handles.te_electrodes;
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
+
+  handles.rotateMat = tMat;
+  electrodes = handles.electrodes;
+  electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
+  handles.electrodes = electrodes(:,1:3);
+  te_electrodes = electrodes * handles.translateMat * handles.scaleMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -594,7 +601,6 @@ function rotate(hObject, about, degree)
   handles.hE = scatter3(te_electrodes(1:7,1),te_electrodes(1:7,2),te_electrodes(1:7,3), 'filled','lineWidth',20);
   handles.hT = text(te_electrodes(:,1),te_electrodes(:,2),te_electrodes(:,3), num2str(handles.labels));
   hold off
-  handles.te_electrodes = te_electrodes(:,1:3);
   % comment out for beautiful effects
   guidata(hObject, handles);
 
@@ -634,27 +640,21 @@ function rotateZField_Callback(hObject, eventdata, handles)
 
 function translate(hObject, along, matrix)
   handles = guidata(hObject);
-  electrodes = handles.te_electrodes;
-  if isfield(handles, 'prevMat') == false
-    handles.prevMat = [0 0 0];
-  end
+  electrodes = handles.electrodes;
 
-  difMat = [0 0 0];
+  tMat = handles.translateMat;
   switch along
     case 'x'
-      difMat(1) = matrix(1) - handles.prevMat(1);
-      handles.prevMat(1) = matrix(1);
+      tMat(4,1) = matrix(1);
     case 'y'
-      difMat(2) = matrix(2) - handles.prevMat(2);
-      handles.prevMat(2) = matrix(2);
+      tMat(4,2) = matrix(2);
     case 'z'
-      difMat(3) = matrix(3) - handles.prevMat(3);
-      handles.prevMat(3) = matrix(3);
+      tMat(4,3) = matrix(3);
   end
-  % matrix [ x y z ];
-  tMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; difMat(1) difMat(2) difMat(3) 1];
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
-  handles.te_electrodes = te_electrodes(:,1:3);
+
+  % tMat = [1 0 0 0; 0 1 0 0; 0 0 1 0; difMat(1) difMat(2) difMat(3) 1];
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat * handles.scaleMat;
+  handles.translateMat = tMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -703,26 +703,25 @@ function translateZField_Callback(hObject, eventdata, handles)
 
 function scaler(hObject, along, matrix)
   handles = guidata(hObject);
-  electrodes = handles.te_electrodes;
-  if isfield(handles, 'prevSMat') == false
-    handles.prevSMat = [1 1 1];
-  end
+  electrodes = handles.electrodes;
 
-  difMat = handles.prevSMat;
+  tMat = handles.scaleMat;
   switch along
     case 'x'
-      difMat(1) = matrix(1);
+      tMat(1,1) = matrix(1);
     case 'y'
-      difMat(2) = matrix(2);
+      tMat(2,2) = matrix(2);
     case 'z'
-      difMat(3) = matrix(3);
+      tMat(3,3) = matrix(3);
     otherwise
-      difMat = matrix;
+      tMat(1,1) = matrix(1);
+      tMat(2,2) = matrix(2);
+      tMat(3,3) = matrix(3);
   end
-  handles.prevSMat = difMat;
-  % matrix [ x y z ];
-  tMat = [difMat(1) 0 0 0; 0 difMat(2) 0 0; 0 0 difMat(3) 0; 0 0 0 1];
-  te_electrodes = [electrodes ones(length(electrodes), 1)] * tMat;
+
+  % tMat = [difMat(1) 0 0 0; 0 difMat(2) 0 0; 0 0 difMat(3) 0; 0 0 0 1];
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.translateMat * tMat;
+  handles.scaleMat = tMat;
 
   delete(handles.hRef);
   delete(handles.hE);
@@ -733,7 +732,6 @@ function scaler(hObject, along, matrix)
   handles.hT = text(te_electrodes(:,1),te_electrodes(:,2),te_electrodes(:,3), num2str(handles.labels));
   hold off
 
-  handles.ste_electrodes = te_electrodes(:,1:3);
   % comment out for beautiful effects
   guidata(hObject, handles);
 
@@ -804,17 +802,15 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
   handles = guidata(hObject);
-  [rows, ~] = size(handles.ste_electrodes);
+  electrodes = handles.electrodes;
+
   h = waitbar(0, 'Positioning sensor locations');
 
-  wrappedSensor = zeros(rows, 3);
-  for i=1:rows
-    distances = sqrt(sum( bsxfun(@minus, handles.surf_face.V, handles.ste_electrodes(i,:)).^2, 2));
-    % distances = sqrt(sum( (handles.surf_face.V - handles.ste_electrodes(i,:)).^2, 2));
-    [r, c, val] = find(distances==min(distances));
-    wrappedSensor(i,:) = handles.surf_face.V(r(1),:);
-    waitbar(i/rows);
-  end
+  te_electrodes = [electrodes ones(length(electrodes), 1)] * handles.translateMat * handles.scaleMat;
+  te_electrodes = te_electrodes(:,1:3);
+
+  wrappedSensor = wrapSensor(handles.surf_face.V, te_electrodes);
+
   close(h);
 
   delete(handles.hRef);
@@ -822,24 +818,35 @@ function wrapSensorPosition_Callback(hObject, eventdata, handles)
   delete(handles.hT);
   hold on
 
-  expand = 1.05;
-  tMat = [expand 0 0 0; 0 expand 0 0; 0 0 expand 0; 0 0 0 1];
-  wrappedSensor = [wrappedSensor ones(length(wrappedSensor), 1)] * tMat;
+  expand = 1;
+  % tMat = [expand 0 0 0; 0 expand 0 0; 0 0 expand 0; 0 0 0 1];
+  wrappedSensor = [wrappedSensor ones(length(wrappedSensor), 1)];% * tMat;
 
   handles.hRef = scatter3(wrappedSensor(:,1), wrappedSensor(:,2), wrappedSensor(:,3),'filled','lineWidth',20);
   handles.hE = scatter3(wrappedSensor(1:7,1),wrappedSensor(1:7,2),wrappedSensor(1:7,3), 'filled','lineWidth',20);
 
+  handles.wrapped_electrodes = wrappedSensor;
+
   wrappedSensor = wrappedSensor(:,1:3);
-  expand = 1.1;
+  expand = 1.05;
   tMat = [expand 0 0 0; 0 expand 0 0; 0 0 expand 0; 0 0 0 1];
   wrappedSensor = [wrappedSensor ones(length(wrappedSensor), 1)] * tMat;
 
   handles.hT = text(wrappedSensor(:,1),wrappedSensor(:,2),wrappedSensor(:,3), num2str(handles.labels));
   hold off
-  handles.wrapped_electrodes = wrappedSensor;
 
   setExportSection(hObject, 'on');
   guidata(hObject, handles);
+
+function wrappedSensor = wrapSensor(meshData, electrodeData)
+  [rows, ~] = size(electrodeData);
+
+  wrappedSensor = zeros(rows, 3);
+  for i=1:rows
+    distances = sqrt(sum( bsxfun(@minus, meshData, electrodeData(i,:)).^2, 2));
+    [r, c, val] = find(distances==min(distances));
+    wrappedSensor(i,:) = meshData(r(1),:);
+  end
 
 function setAlignSection(hObject, status)
   handles = guidata(hObject);
@@ -895,12 +902,20 @@ function setExportSection(hObject, status)
   % eventdata  reserved - to be defined in a future version of MATLAB
   % handles    structure with handles and user data (see GUIDATA)
    handles = guidata(hObject);
-   [fileName, pathName] = uiputfile(['arm_model_surface_' strrep(date,'-','_') '.mat'],'Save file name')
+   [fileName, pathName] = uiputfile(['arm_model_surface_' strrep(date,'-','_') '.mat'],'Save file name');
    currentDirectory = pwd;
    cd(pathName);
    fileName
-   surf = handles.surf_face
-   save(fileName, 'surf');
+   if isfield(handles, 'importPlot')
+     model = struct;
+     model.skin = handles.surf_face;
+     model.bone = handles.bone_face;
+     model.muscle = handles.muscle_face;
+   else
+     model = handles.surf_face;
+   end
+
+   save(fileName, 'model');
    cd(currentDirectory);
 
   % --- Executes on button press in saveSensorPosition.
@@ -909,10 +924,10 @@ function setExportSection(hObject, status)
   % eventdata  reserved - to be defined in a future version of MATLAB
   % handles    structure with handles and user data (see GUIDATA)
   handles = guidata(hObject);
-  [fileName, pathName] = uiputfile(['sensor_position_' strrep(date,'-','_') '.csv'],'Save file name')
+  [fileName, pathName] = uiputfile(['sensor_position_' strrep(date,'-','_') '.csv'],'Save file name');
   currentDirectory = pwd;
   cd(pathName);
-  csvwrite(fileName, handles.wrapped_electrodes);
+  csvwrite(fileName,[handles.labels handles.wrapped_electrodes(:,1:3)]);
   cd(currentDirectory);
 
 
@@ -928,7 +943,7 @@ function setExportSection(hObject, status)
   savefig(Fig2, 'myFigure.fig')
 
   handles = guidata(hObject);
-  [fileName, pathName] = uiputfile(['arm_model_' strrep(date,'-','_') '.figure'],'Save file name')
+  [fileName, pathName] = uiputfile(['arm_model_' strrep(date,'-','_') '.figure'],'Save file name');
   currentDirectory = pwd;
   cd(pathName);
   fileName
@@ -947,7 +962,7 @@ function setExportSection(hObject, status)
   export_data = struct;
   export_data.surf_face = handles.surf_face;
   export_data.electrodes = handles.wrapped_electrodes(:,1:3);
-  export_data.raw_electrodes = handles.ste_electrodes(:,1:3);
+  export_data.raw_electrodes = handles.raw_electrodes(:,1:3);
   export_data.labels = handles.labels;
   save(fileName, 'export_data');
   cd(currentDirectory);
@@ -973,9 +988,15 @@ function makeModelTransparent_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 hold on
-delete(handles.modelPlot);
 surf_face = handles.surf_face;
-handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+
+if isfield(handles, 'modelPlot')
+  delete(handles.modelPlot);
+  handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+elseif isfield(handles, 'importPlot')
+  delete(handles.importPlot);
+  handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3),  'FaceAlpha', 0.1, 'EdgeColor', [0.5 0.5 0.5])
+end
 axis equal
 hold off
 guidata(hObject, handles);
@@ -986,16 +1007,82 @@ function makeModelSkin_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
-delete(handles.modelPlot);
 hold on
 surf_face = handles.surf_face;
-handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 1, 'FaceColor', [255 218 200]/255, 'EdgeColor', [255 218 200]/255, 'facelighting','gouraud', 'BackFaceLighting', 'unlit')
+
+if isfield(handles, 'modelPlot')
+  delete(handles.modelPlot);
+  handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 1, 'FaceColor', [255 218 200]/255, 'EdgeColor', [255 218 200]/255, 'facelighting','gouraud', 'BackFaceLighting', 'unlit')
+  delete(findall(gcf,'Type','light'))
+  lightangle(-45,30)
+  lightangle(-135,30)
+  lightangle(45,-30)
+  lightangle(135,-30)
+elseif isfield(handles, 'importPlot')
+  delete(handles.importPlot);
+  handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.9, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
+end
 axis equal
 hold off
-delete(findall(gcf,'Type','light'))
-lightangle(-45,30)
-lightangle(-135,30)
-lightangle(45,-30)
-lightangle(135,-30)
+
 
 guidata(hObject, handles);
+
+
+% --- Executes on button press in importMesh.
+function importMesh_Callback(hObject, eventdata, handles)
+% hObject    handle to importMesh (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[file_name, file_path] = uigetfile('*.mat', 'Select a .mat file');
+
+if file_name ~= 0,
+  handles = guidata(hObject);
+  load([file_path file_name]);
+
+  axes(handles.axes1);
+  % Plot together
+
+  if isfield(handles,'modelPlot')
+    delete(modelPlot)
+  end
+
+  if ~isstruct(model)
+    handles.surf_face.F = fskin(:,[1 2 3]);
+    handles.surf_face.V = nskin(:,[1 2 3]);
+    handles.bone_face.F = fbone(:,[1 2 3]);
+    handles.bone_face.V = nbone(:,[1 2 3]);
+    handles.muscle_face.F = fmuscle(:,[1 2 3]);
+    handles.muscle_face.V = nmuscle(:,[1 2 3]);
+    surf_face = handles.surf_face;
+    hold on
+    plotmesh(nbone(:,[1 2 3]),fbone(:,[1 2 3]),'facealpha',0.7,'facecolor', [1 1 1], 'EdgeAlpha', 0.25);
+    plotmesh(nmuscle(:,[1 2 3]),fmuscle(:,[1 2 3]),'facealpha',0.5,'facecolor', [0.85 0 0], 'EdgeAlpha', 0.25);
+    handles.importPlot = trisurf(surf_face.F, surf_face.V(:,1), surf_face.V(:,2), surf_face.V(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
+
+  else
+    surf_face = model;
+    handles.surf_face = surf_face;
+    handles.modelPlot = trisurf(surf_face.F_reduce, surf_face.V_reduce(:,1), surf_face.V_reduce(:,2), surf_face.V_reduce(:,3), 'FaceAlpha', 0.5, 'FaceColor', [255 218 200]/255, 'EdgeColor', [248./255.,216./255.,183./255.], 'facelighting','gouraud', 'BackFaceLighting', 'lit')
+  end
+
+
+  % plotmesh(nskin(:,[1 2 3]),fskin(:,[1 2 3]),'facealpha',0.7,'facecolor', [248./255.,216./255.,183./255.], 'EdgeAlpha', 0.25);
+
+  axis equal
+  hold off
+
+
+  set( gcf, 'menubar', 'figure' )
+  guidata(hObject, handles);
+end
+% plotmesh(nskin(:,[1 2 3]),fskin(:,[1 2 3]),'facealpha',0.7,'facecolor', [248./255.,216./255.,183./255.], 'EdgeAlpha', 0.25);
+% hold off
+% legend('Bone','Muscle','Fat and Skin')
+% xlabel('X [mm]')
+% ylabel('Y [mm]')
+% zlabel('Z [mm]')
+% view(37.5,30)
+% set(gca, 'fontsize',14)
+% set(gca,'xtick',([0 40 60 80 100]))
+% set(gcf,'color','w')

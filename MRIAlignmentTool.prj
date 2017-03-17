@@ -1,0 +1,174 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration build-checksum="3631432322" file="/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/MRIAlign/MRIAlignmentTool.prj" location="/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/MRIAlign" name="MRIAlignmentTool" target="target.mlapps" target-name="Package App">
+    <param.appname>MRIAlignmentTool</param.appname>
+    <param.authnamewatermark>Kalanyu Zintus-art</param.authnamewatermark>
+    <param.email>kalanyuz@gmail.com</param.email>
+    <param.company />
+    <param.icon />
+    <param.icons />
+    <param.summary />
+    <param.description />
+    <param.screenshot />
+    <param.version>1.0</param.version>
+    <param.products.name>
+      <item>MATLAB</item>
+    </param.products.name>
+    <param.products.id>
+      <item>1</item>
+    </param.products.id>
+    <param.products.version>
+      <item>9.1</item>
+    </param.products.version>
+    <param.platforms>
+      <item>maci64</item>
+    </param.platforms>
+    <param.output>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/MRIAlign</param.output>
+    <param.guid>9c437f27-737c-413a-9c0b-6f0b03ec121b</param.guid>
+    <unset>
+      <param.company />
+      <param.icon />
+      <param.icons />
+      <param.summary />
+      <param.description />
+      <param.screenshot />
+      <param.version />
+      <param.output />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}/MRIAlignmentTool.m</file>
+    </fileset.main>
+    <fileset.depfun>
+      <file>${MATLAB_ROOT}/toolbox/local/userpath.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/FGT/fgt_model.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/FGT/fgt_predict.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/Nonrigid/cpd_GRBF.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/Nonrigid/cpd_GRBF_lowrank.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/Nonrigid/cpd_GRBF_lowrankQS.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/Rigid/cpd_affine.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/Rigid/cpd_rigid.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/cpd_make.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/cpd_register.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/mex/cpd_P.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/mex/cpd_Pappmex.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/mex/cpd_Pcorrespondence.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/utils/cpd_G.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/utils/cpd_P_FGT.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/utils/cpd_Pfast.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/utils/cpd_normalize.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/utils/cpd_plot_iter.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/CPD2/core/utils/disptime.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/NFTplugin/gui_mainfcn.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/dicm2nii/dicm2nii.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/dicm2nii/dicm_dict.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/dicm2nii/dicm_hdr.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/dicm2nii/dicm_img.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/dicm2nii/java_dnd.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/dicm2nii/nii_tool.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/abs.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/abs.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/all.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/any.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/diff.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/max.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/max.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/min.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/min.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/minus.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/minus.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/plus.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/plus.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/rdivide.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/spm12/external/fieldtrip/fileio/@uint64/rdivide.mexmaci64</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/neighbor_index.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/out_normal.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/out_normal_vect.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/separate_surf.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/solid_angle_check.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/trans_index.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/triangle_normal.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/boundary/vertex_normal.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/coordinate/analyze_right_to_spm_right.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/loadfunc/load_analyze_to_right.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/back_threshold.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/dilation_3d.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/dilation_3d_int.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/erosion_3d.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/erosion_3d_int.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/exponential_estimate.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/face_extract.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/gaussian_estimate.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/histmin_estimate.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/image_to_mask.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/morphology_operation.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/mri_histgram.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/rayleigh_estimate.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/morphology/surf_extract.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/lib/plotfunc/plot_slice.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/utility/cross2.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/utility/matlab_version.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/common/utility/ptime.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/external/NIFTI/get_rot_from_orient.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/external/NIFTI/load_nii.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/external/NIFTI/load_nii_hdr.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/external/NIFTI/load_nii_img.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/tool_box/load_NIFTI/orientation_tool/change_orient_ras.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/tool_box/load_NIFTI/orientation_tool/get_orient_from_rot.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/tool_box/load_NIFTI/orientation_tool/get_orient_info.m</file>
+      <file>/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/vbmeg_all_in_one/positioning1_0_3/tool_box/load_NIFTI/orientation_tool/load_nii_ras.m</file>
+    </fileset.depfun>
+    <fileset.resources>
+      <file>${PROJECT_ROOT}/MRIAlignmentTool.fig</file>
+      <file>${PROJECT_ROOT}/readOptoPositions.m</file>
+      <file>${PROJECT_ROOT}/rigid_transform_3D.m</file>
+    </fileset.resources>
+    <fileset.package />
+    <build-deliverables>
+      <file location="/Users/kalanyuzintus-art/Documents/MATLAB/MRITools" name="MRIAlign" optional="false">/Users/kalanyuzintus-art/Documents/MATLAB/MRITools/MRIAlign</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>/Applications/MATLAB_R2016b.app</root>
+      <toolboxes>
+        <toolbox name="fixedpoint" />
+        <toolbox name="matlabcoder" />
+        <toolbox name="matlabhdlcoder" />
+        <toolbox name="embeddedcoder" />
+      </toolboxes>
+      <toolbox>
+        <fixedpoint>
+          <enabled>true</enabled>
+        </fixedpoint>
+      </toolbox>
+      <toolbox>
+        <matlabcoder>
+          <enabled>true</enabled>
+        </matlabcoder>
+      </toolbox>
+      <toolbox>
+        <matlabhdlcoder>
+          <enabled>true</enabled>
+        </matlabhdlcoder>
+      </toolbox>
+      <toolbox>
+        <embeddedcoder>
+          <enabled>true</enabled>
+        </embeddedcoder>
+      </toolbox>
+    </matlab>
+    <platform>
+      <unix>true</unix>
+      <mac>true</mac>
+      <windows>false</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>false</linux>
+      <solaris>false</solaris>
+      <osver>10.12.2</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>maci64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>
