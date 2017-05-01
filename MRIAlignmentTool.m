@@ -345,7 +345,12 @@ function mergeButton_Callback(hObject, eventdata, handles)
     Roriginal = imref2d(size(handles.upperImg));
   end
 
+  sliceDifference = 0;
+  zDifference = 0;
+  lastUpperInfo = struct;
+
   for i = 1:upperIndex
+
     upperInfo = dicominfo(handles.filePaths{i});
     upperImg = dicomread(upperInfo);
     upperInfo.SeriesDescription = ['vol_slice_' sprintf('%0.4d', i)];
@@ -353,12 +358,21 @@ function mergeButton_Callback(hObject, eventdata, handles)
     dicomwrite(upperImg,['wholeArmDCM/' upperInfo.SeriesDescription '.DCM'], upperInfo);
     dicm2nii('temp_vol',['wholeArmNii'],'nii');
     waitbar(i/totalLength);
+
+    if isfield(lastUpperInfo,'SliceLocation')
+        sliceDifference = abs(lastUpperInfo.SliceLocation - upperInfo.SliceLocation);
+        zDifference = abs(lastUpperInfo.ImagePositionPatient(3) - upperInfo.ImagePositionPatient(3));
+    end
+    lastUpperInfo = upperInfo;
   end
+
+
   delete('temp_vol');
 
   if ~isfield(handles, 'oneSegment')
     foreFileIndex = upperIndex + 1;
     % transform the rest of the forearm images, convert to nii and move to another folder
+    foreSlice = 1;
     for i = foreIndex:length(handles.filePaths)
       foreInfo = dicominfo(handles.filePaths{i});
       [foreImg, foreMap] = dicomread(foreInfo);
@@ -368,11 +382,16 @@ function mergeButton_Callback(hObject, eventdata, handles)
       else
         recovered = foreImg;
       end
+
+      foreInfo = lastUpperInfo;
       foreInfo.SeriesDescription = ['vol_slice_' sprintf('%0.4d', foreFileIndex)];
+      foreInfo.SliceLocation = lastUpperInfo.SliceLocation - (sliceDifference * foreSlice);
+      foreInfo.ImagePositionPatient(3) = lastUpperInfo.ImagePositionPatient(3) - (zDifference * foreSlice);
       dicomwrite(recovered, 'transformed_vol', foreInfo);
       dicomwrite(recovered,['wholeArmDCM/' foreInfo.SeriesDescription '.DCM'], foreInfo);
       dicm2nii('transformed_vol',['wholeArmNii'],'nii');
       foreFileIndex = foreFileIndex + 1;
+      foreSlice = foreSlice + 1;
 
       waitbar(i/totalLength);
     end
