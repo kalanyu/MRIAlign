@@ -385,7 +385,7 @@ function mergeButton_Callback(hObject, eventdata, handles)
   curdatetime = strjoin(curdatetime(1:5), '_');
   handles.mergedFileName = ['wholeArmNii/' 'wholeArm_' curdatetime];
 
-  system(char(['/usr/local/fsl/bin/fslmerge -z ' handles.mergedFileName ' vol_slice_*']))
+  system(char(['/usr/local/fsl/bin/fslmerge -z ' handles.mergedFileName ' wholeArmNii/vol_slice_*']))
   gunzip([handles.mergedFileName '.nii.gz'])
   numSlices = length(dir('vol_slice_*'));
   delete('vol_slice_*');
